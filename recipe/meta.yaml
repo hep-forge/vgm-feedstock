@@ -1,10 +1,11 @@
 {% set versions = {
-    "0.0.0": "REPLACE_WITH_SHA256"
+    "5.5": "e39ba53c7e473620f06f9c2ac88fbb645a80ab77617cc2cdfdd5f8ef7a25e71e"
 } %}
 
 {% set version = environ.get('COMMIT_VERSION', None) %}
 {% set version = version or versions.keys()|first %}
 {% set version = version|string %}
+{% set root_tag = (root or '')|replace('.', '') %}
 
 {% set name = environ.get('ANACONDA_PACKAGE', 'vgm')|string|lower %}
 
@@ -13,15 +14,17 @@ package:
   version: {{ environ.get('ANACONDA_VERSION', version)|replace("-", ".") }}
 
 source:
-  url: "https://github.com/vmc-project/vgm/archive/refs/tags/{{ version }}.tar.gz"   # TODO: confirm upstream's actual tag/tarball naming
+  url: "https://github.com/vmc-project/vgm/archive/refs/tags/v{{ version|replace('.', '-') }}.tar.gz"
   {% if versions.get(version, None) %}
   sha256: {{ versions.get(version) }}
   {% endif %}
 
 build:
   number: 0
+  string: "root{{ root_tag }}"
+  skip: true  # [not linux]
   run_exports:
-    - {{ pin_subpackage(name, max_pin="x.x.x") }}
+    - {{ pin_subpackage(name, max_pin="x.x") }}
 
 requirements:
   build:
@@ -31,18 +34,33 @@ requirements:
     - cmake
     - make
   host:
-    # TODO: library dependencies
+    - root {{ root }}.*
+    - root-guard
+    - geant4 >=11.1
+    # Geant4Config.cmake looks for EXPAT; geant4 only brings libexpat.
+    - expat
+    - clhep
+    # and ZLIB headers
+    - zlib
   run:
-    # TODO: runtime dependencies
+    - root {{ root }}.*
+    - root-guard
 
 test:
   commands:
-    - echo "TODO: a real smoke test"
+    - for l in BaseVGM ClhepVGM Geant4GM RootGM XmlVGM; do test -f "${PREFIX}/lib/lib${l}.so"; done
+    - test -f "${PREFIX}/include/VGM/volumes/IVolume.h"
+    - test -f "${PREFIX}/lib/VGM-{{ version }}.0/VGMConfig.cmake"
 
 about:
-  home: "https://github.com/vmc-project/vgm"
-  license: "GPL-3.0-only"
-  summary: "Virtual Geometry Model, converting geometry between Geant4 and ROOT"
+  home: https://vmc-project.github.io/
+  dev_url: https://github.com/vmc-project/vgm
+  license: GPL-3.0-only
+  license_file: LICENSE
+  summary: Virtual Geometry Model, converting detector geometry between Geant4 and ROOT
+  description: |
+    VGM converts detector geometry in both directions between Geant4 and
+    ROOT TGeo, and exports it to XML (AGDD, GDML).
 
 extra:
   recipe-maintainers:
