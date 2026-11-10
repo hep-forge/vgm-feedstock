@@ -34,8 +34,8 @@ requirements:
     - cmake
     - make
   host:
-    - root {{ root }}.*
-    - root-guard
+    - root_base {{ root }}.* cxx{{ root_cxx_standard }}*
+    - python
     - geant4 >=11.1
     # Geant4Config.cmake looks for EXPAT; geant4 only brings libexpat.
     - expat
@@ -43,8 +43,7 @@ requirements:
     # and ZLIB headers
     - zlib
   run:
-    - root {{ root }}.*
-    - root-guard
+    - {{ pin_compatible('root_base', exact=True) }}
 
 test:
   commands:
